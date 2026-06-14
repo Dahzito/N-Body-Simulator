@@ -1,12 +1,15 @@
 import builtins
 from math import*
 from sys import*
+path.append(r"C:\Users\Dahzito_08\Downloads")
 from os import*
 import os
 import json
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+
+import core_calculations
 
 δt:float = 3 #days
 δt_default:float = 2 #default timestep for normal conditions
@@ -92,36 +95,6 @@ bodies.append(Body(1.05*M_Earth, [0,0,0], [0, 45271, 0], [0.0455*au*(1-0.04), 0,
 bodies.append(Body(0.82*M_Earth, [0,0,0], [0, 35384, 0], [0.0791*au*(1-0.07), 0, 0], "Teegardens d", 0.82*R_Earth, 120, 0.50, 2000, "Planet", [190/255, 154/255, 36/255, 0.8], 0.0, 0.9))
 
 #Mass, acceleration, velocity, coordinates, name, radii, temperature, albedo, temp_threshold, type, RGB colors (0-1), greenhouse effect (0-1), ε - Surface Emissitivity (0-1);
-
-def Acceleration(dx, dy, dz, num, pos_x=None, pos_y=None, pos_z=None):
-    eps_local = min(b.radii for b in bodies) * 1
-    ax = 0.0
-    ay = 0.0
-    az = 0.0
-
-    if pos_x is not None and pos_y is not None and pos_z is not None:
-        for j in range(len(bodies)):
-            if j == num:
-                continue
-            rx = pos_x[j] - dx
-            ry = pos_y[j] - dy
-            rz = pos_z[j] - dz
-            r_soft = sqrt(rx**2 + ry**2 + rz**2 + eps_local**2)
-            ax += (G * bodies[j].mass * rx) / r_soft**3
-            ay += (G * bodies[j].mass * ry) / r_soft**3
-            az += (G * bodies[j].mass * rz) / r_soft**3
-    else:
-        for j, other in enumerate(bodies):
-            if j == num:
-                continue
-            rx = other.coordinates[0] - dx
-            ry = other.coordinates[1] - dy
-            rz = other.coordinates[2] - dz
-            r_soft = sqrt(rx**2 + ry**2 + rz**2 + eps_local**2)
-            ax += (G * other.mass * rx) / r_soft**3
-            ay += (G * other.mass * ry) / r_soft**3
-            az += (G * other.mass * rz) / r_soft**3
-    return ax, ay, az
 
 def Update_():
     global δt, ε, force_temp
@@ -258,14 +231,7 @@ def Update_():
             if temp_new > bodies[i].temperature: bodies[i].temperature = temp_new
 
     # Yoshida 4th Order Integrator: for bigger timesteps and better long-term energy conservation
-    # Coefficients for the Yoshida 4th order symplectic integrator
-    w0 = -1.702414289193
-    w1 = 1.3512071919597
-    c1 = c4 = w1 / 2.0
-    c2 = c3 = (w0 + w1) / 2.0
-    d1 = d3 = w1
-    d2 = w0
-
+    
     n_b = len(bodies)
     if n_b > 0:
         pos_x = [body.coordinates[0] for body in bodies]
@@ -276,54 +242,15 @@ def Update_():
         vel_y = [body.velocity[1] for body in bodies]
         vel_z = [body.velocity[2] for body in bodies]
 
-        def compute_accelerations(px, py, pz):
-            axs = [0.0] * n_b
-            ays = [0.0] * n_b
-            azs = [0.0] * n_b
+        masses = [b.mass for b in bodies]
 
-            for i in range(n_b):
-                axs[i], ays[i], azs[i] = Acceleration(px[i], py[i], pz[i], i, px, py, pz)
-            return axs, ays, azs
+        results = core_calculations.Yoshida4thIntegrator(
+                pos_x, pos_y, pos_z,
+                vel_x, vel_y, vel_z,
+                masses, ε, G, dt_seconds
+                )
 
-        # Stage 1
-        for i in range(n_b):
-            pos_x[i] += c1 * vel_x[i] * dt_seconds
-            pos_y[i] += c1 * vel_y[i] * dt_seconds
-            pos_z[i] += c1 * vel_z[i] * dt_seconds
-
-        axs, ays, azs = compute_accelerations(pos_x, pos_y, pos_z)
-        for i in range(n_b):
-            vel_x[i] += d1 * dt_seconds * axs[i]
-            vel_y[i] += d1 * dt_seconds * ays[i]
-            vel_z[i] += d1 * dt_seconds * azs[i]
-
-        # Stage 2
-        for i in range(n_b):
-            pos_x[i] += c2 * vel_x[i] * dt_seconds
-            pos_y[i] += c2 * vel_y[i] * dt_seconds
-            pos_z[i] += c2 * vel_z[i] * dt_seconds
-        axs, ays, azs = compute_accelerations(pos_x, pos_y, pos_z)
-        for i in range(n_b):
-            vel_x[i] += d2 * dt_seconds * axs[i]
-            vel_y[i] += d2 * dt_seconds * ays[i]
-            vel_z[i] += d2 * dt_seconds * azs[i]
-
-        # Stage 3
-        for i in range(n_b):
-            pos_x[i] += c3 * vel_x[i] * dt_seconds
-            pos_y[i] += c3 * vel_y[i] * dt_seconds
-            pos_z[i] += c3 * vel_z[i] * dt_seconds
-        axs, ays, azs = compute_accelerations(pos_x, pos_y, pos_z)
-        for i in range(n_b):
-            vel_x[i] += d3 * dt_seconds * axs[i]
-            vel_y[i] += d3 * dt_seconds * ays[i]
-            vel_z[i] += d3 * dt_seconds * azs[i]
-
-        # Final position update
-        for i in range(n_b):
-            pos_x[i] += c4 * vel_x[i] * dt_seconds
-            pos_y[i] += c4 * vel_y[i] * dt_seconds
-            pos_z[i] += c4 * vel_z[i] * dt_seconds
+        pos_x, pos_y, pos_z, vel_x, vel_y, vel_z = results
 
         for i in range(n_b):
             bodies[i].coordinates[0] = pos_x[i]
@@ -408,15 +335,15 @@ def Visualize(energy_reset_period=Δt_reset):
         os.path.expanduser("~"),
         "Downloads",
         "Python Plots - 3D N-Body Simulator",
-        "N-Body Simulator - Full Tracking - Teegardens System - Plots",
-        "N-Body Simulator, Teegardens System, Plot {num} @ {current_time:.2f} days.png"
+        "N-Body Simulator - Full Tracking - C++ Test1 - Plots",
+        "N-Body Simulator, C++ Test1, Plot {num} @ {current_time:.2f} days.png"
     )
     save_json_template = os.path.join(
         os.path.expanduser("~"),
         "Downloads",
         "Python Plots - 3D N-Body Simulator",
-        "N-Body Simulator - Full Tracking - Teegardens System - Data",
-        "N-Body Simulator, Teegardens System, Data {num} @ {current_time:.2f} days.json"
+        "N-Body Simulator - Full Tracking - C++ Test1 - Data",
+        "N-Body Simulator, C++ Test1, Data {num} @ {current_time:.2f} days.json"
     )
     os.makedirs(os.path.dirname(save_png_template), exist_ok=True)
     os.makedirs(os.path.dirname(save_json_template), exist_ok=True)

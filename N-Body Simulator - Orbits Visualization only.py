@@ -6,6 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
+import core_calculations
+
 δt:float = 3 #days
 δt_default:float = 2 #default timestep for normal conditions
 Δt:float = 365.25*10 #days
@@ -13,9 +15,6 @@ from matplotlib.animation import FuncAnimation
 Δt_reset:float = 365*(1/2)
 
 ε:float = 0 #Gravitational softening
-Acc_dx:float = 0 
-Acc_dy:float = 0
-Acc_dz:float = 0
 force_temp:float = 0 #Temporary variable for storing gravitational force
 
 G = 6.67430 * 10**-11 #Gravitational constant
@@ -85,44 +84,13 @@ bodies = []
 bodies.append(Body(1.227*M_Sun, [0,0,0], [0, 0, 0], [0, 0, 0], "HD 28109 *", 1.425*R_Sun, 5878, 0.0, 1000, "Star", [1, 1, 0.7, 1], 0, 1))
 #The RGB values of the Star are automatically determined depending on their surface temperature, also calculated using the Mass-Luminosity Relation, and Stefan-Boltzmann's law.
 
-bodies.append(Body(6.2*M_Earth, [0,0,0], [0, 88033, 19154], [0.1357*au*(1-0.00710), 0, 0], "HD 28109 b", 2.69*R_Earth, 280, 0.31, 2000, "Planet", [206/255, 104/255, 45/255, 0.8], 0.2, 0.9))
+bodies.append(Body(6.2*M_Earth, [0,0,0], [0, 88033, 19154], [0.1357*au*(1-0.00710), 0, 0], "HD 28109 b", 2.69*R_Earth, 280, 0.25, 2000, "Planet", [206/255, 104/255, 45/255, 0.8], 0.2, 0.9))
 
-bodies.append(Body(9.20*M_Earth, [0,0,0], [0, 58619, 10819], [0.308*au*(1-0.0039), 0, 0], "HD 28109 c", 4.13*R_Earth, 120, 0.50, 2000, "Planet", [226/255, 83/255, 0/255, 0.8], 0.1, 0.9))
+bodies.append(Body(9.20*M_Earth, [0,0,0], [0, 58619, 10819], [0.308*au*(1-0.0039), 0, 0], "HD 28109 c", 4.13*R_Earth, 120, 0.25, 2000, "Planet", [226/255, 83/255, 0/255, 0.8], 0.1, 0.9))
 
-bodies.append(Body(5.681*M_Earth, [0,0,0], [0, 50844, 925.7], [0.411*au*(1-0.0054), 0, 0], "HD 28109 d", 3.25*R_Earth, 120, 0.50, 2000, "Planet", [190/255, 154/255, 36/255, 0.8], 0.0, 0.9))
+bodies.append(Body(5.681*M_Earth, [0,0,0], [0, 50844, 925.7], [0.411*au*(1-0.0054), 0, 0], "HD 28109 d", 3.25*R_Earth, 120, 0.25, 2000, "Planet", [190/255, 154/255, 36/255, 0.8], 0.0, 0.9))
 
 #Mass, acceleration, velocity, coordinates, name, radii, temperature, albedo, temp_threshold, type, RGB colors (0-1), greenhouse effect (0-1), ε - Surface Emissitivity (0-1);
-
-
-def Acceleration(dx, dy, dz, num, pos_x=None, pos_y=None, pos_z=None):
-    eps_local = min(b.radii for b in bodies) * 1
-    ax = 0.0
-    ay = 0.0
-    az = 0.0
-
-    if pos_x is not None and pos_y is not None and pos_z is not None:
-        for j in range(len(bodies)):
-            if j == num:
-                continue
-            rx = pos_x[j] - dx
-            ry = pos_y[j] - dy
-            rz = pos_z[j] - dz
-            r_soft = sqrt(rx**2 + ry**2 + rz**2 + eps_local**2)
-            ax += (G * bodies[j].mass * rx) / r_soft**3
-            ay += (G * bodies[j].mass * ry) / r_soft**3
-            az += (G * bodies[j].mass * rz) / r_soft**3
-    else:
-        for j, other in enumerate(bodies):
-            if j == num:
-                continue
-            rx = other.coordinates[0] - dx
-            ry = other.coordinates[1] - dy
-            rz = other.coordinates[2] - dz
-            r_soft = sqrt(rx**2 + ry**2 + rz**2 + eps_local**2)
-            ax += (G * other.mass * rx) / r_soft**3
-            ay += (G * other.mass * ry) / r_soft**3
-            az += (G * other.mass * rz) / r_soft**3
-    return ax, ay, az
 
 def Update_():
     global δt, ε, force_temp
@@ -260,13 +228,6 @@ def Update_():
 
 
     # Yoshida 4th Order Integrator: for bigger timesteps and better long-term energy conservation
-    # Coefficients for the Yoshida 4th order symplectic integrator
-    w0 = -1.702414289193
-    w1 = 1.3512071919597
-    c1 = c4 = w1 / 2.0
-    c2 = c3 = (w0 + w1) / 2.0
-    d1 = d3 = w1
-    d2 = w0
 
     n_b = len(bodies)
     if n_b > 0:
@@ -278,54 +239,15 @@ def Update_():
         vel_y = [body.velocity[1] for body in bodies]
         vel_z = [body.velocity[2] for body in bodies]
 
-        def compute_accelerations(px, py, pz):
-            axs = [0.0] * n_b
-            ays = [0.0] * n_b
-            azs = [0.0] * n_b
+        masses = [b.mass for b in bodies]
 
-            for i in range(n_b):
-                axs[i], ays[i], azs[i] = Acceleration(px[i], py[i], pz[i], i, px, py, pz)
-            return axs, ays, azs
+        results = core_calculations.Yoshida4thIntegrator(
+                pos_x, pos_y, pos_z,
+                vel_x, vel_y, vel_z,
+                masses, ε, G, dt_seconds
+                )
 
-        # Stage 1
-        for i in range(n_b):
-            pos_x[i] += c1 * vel_x[i] * dt_seconds
-            pos_y[i] += c1 * vel_y[i] * dt_seconds
-            pos_z[i] += c1 * vel_z[i] * dt_seconds
-
-        axs, ays, azs = compute_accelerations(pos_x, pos_y, pos_z)
-        for i in range(n_b):
-            vel_x[i] += d1 * dt_seconds * axs[i]
-            vel_y[i] += d1 * dt_seconds * ays[i]
-            vel_z[i] += d1 * dt_seconds * azs[i]
-
-        # Stage 2
-        for i in range(n_b):
-            pos_x[i] += c2 * vel_x[i] * dt_seconds
-            pos_y[i] += c2 * vel_y[i] * dt_seconds
-            pos_z[i] += c2 * vel_z[i] * dt_seconds
-        axs, ays, azs = compute_accelerations(pos_x, pos_y, pos_z)
-        for i in range(n_b):
-            vel_x[i] += d2 * dt_seconds * axs[i]
-            vel_y[i] += d2 * dt_seconds * ays[i]
-            vel_z[i] += d2 * dt_seconds * azs[i]
-
-        # Stage 3
-        for i in range(n_b):
-            pos_x[i] += c3 * vel_x[i] * dt_seconds
-            pos_y[i] += c3 * vel_y[i] * dt_seconds
-            pos_z[i] += c3 * vel_z[i] * dt_seconds
-        axs, ays, azs = compute_accelerations(pos_x, pos_y, pos_z)
-        for i in range(n_b):
-            vel_x[i] += d3 * dt_seconds * axs[i]
-            vel_y[i] += d3 * dt_seconds * ays[i]
-            vel_z[i] += d3 * dt_seconds * azs[i]
-
-        # Final position update
-        for i in range(n_b):
-            pos_x[i] += c4 * vel_x[i] * dt_seconds
-            pos_y[i] += c4 * vel_y[i] * dt_seconds
-            pos_z[i] += c4 * vel_z[i] * dt_seconds
+        pos_x, pos_y, pos_z, vel_x, vel_y, vel_z = results
 
         for i in range(n_b):
             bodies[i].coordinates[0] = pos_x[i]
@@ -334,6 +256,7 @@ def Update_():
             bodies[i].velocity[0] = vel_x[i]
             bodies[i].velocity[1] = vel_y[i]
             bodies[i].velocity[2] = vel_z[i]
+
 
 #------ Visualization of the N Body system using Matplotlib ------
 
@@ -358,8 +281,8 @@ def Visualize(frame_save_period=Δt_reset):
         "Downloads",
         "Python Plots - 3D N-Body Simulator",
         "N-Body Simulator - Orbits Visualization only",
-        "N-Body Simulator - Orbits Visualization - HD 28109 System - Plots",
-        "N-Body Simulator, HD 28109 System, Plot {num} @ {current_time:.2f} days.png"
+        "N-Body Simulator - Orbits Visualization - C++ Test1 - Plots",
+        "N-Body Simulator, C++ Test1, Plot {num} @ {current_time:.2f} days.png"
     )
     os.makedirs(os.path.dirname(save_template), exist_ok=True)
     save_count = [1]
