@@ -25,3 +25,16 @@ bodies.append(Body(1.898e27, [0,0], [0, 13070], [7.785e11, 0], "Jupiter", 6.9911
 This needs to be added after the piece of code that contains: class Body ; and the array bodies = [], btw
 
 Runs on Python with a tad of C++.
+
+----------------------
+
+Some simulations I was able to run on this program:
+
+<img width="1479" height="1526" alt="N-Body Simulator, C++ Test1, Plot 7 @ 1271 56 days" src="https://github.com/user-attachments/assets/f46eb0f0-54c3-46af-9916-bd84d05a80e0" />
+<img width="1479" height="1526" alt="N-Body Simulator, C++ Test1, Plot 8 @ 1454 02 days" src="https://github.com/user-attachments/assets/1dde6877-82e5-425e-b051-0b71207f162c" />
+
+<img width="3212" height="1594" alt="N-Body Simulator, HD 28109 System Plot 5 @ 906 67 days" src="https://github.com/user-attachments/assets/cf53b697-2b29-49d4-a04e-126ae277b20e" />
+<img width="3212" height="1594" alt="N-Body Simulator, HD 28109 System Plot 7 @ 1271 56 days" src="https://github.com/user-attachments/assets/b58a3705-9a3d-45f9-9cc0-e229e1be5a0f" />
+
+<img width="1479" height="1526" alt="N-Body Simulator, Orbits Visualization, T3 Plot 4 @ 2914 69 days" src="https://github.com/user-attachments/assets/fcc90244-1c32-4e40-b337-27ad702cc76e" />
+<img width="1479" height="1568" alt="N-Body Simulator, Orbits Visualization, T3 Plot 9 @ 6564 12 days" src="https://github.com/user-attachments/assets/f97e6f40-f960-490b-9581-ac63a5321ce4" />
