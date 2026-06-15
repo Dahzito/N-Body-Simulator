@@ -1,7 +1,6 @@
 import builtins
 from math import*
 from sys import*
-path.append(r"C:\Users\Dahzito_08\Downloads")
 from os import*
 import os
 import json
@@ -10,6 +9,10 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 import core_calculations
+
+Name_sys:str = "HD 28109 System"  # Name of the System that is going to be simulated, going to be shown on the program and window of the same.
+auto_center:bool = False          # This allows the Plot to be automatically centered to the center coordinates of all bodies in the simulation
+k_update:float = 4                # Number of times per Δt_reset time in which the orbits will be updated
 
 δt:float = 3 #days
 δt_default:float = 2 #default timestep for normal conditions
@@ -335,20 +338,21 @@ def Visualize(energy_reset_period=Δt_reset):
         os.path.expanduser("~"),
         "Downloads",
         "Python Plots - 3D N-Body Simulator",
-        "N-Body Simulator - Full Tracking - C++ Test1 - Plots",
-        "N-Body Simulator, C++ Test1, Plot {num} @ {current_time:.2f} days.png"
+        "N-Body Simulator - Full Tracking - C++ Test4 - Plots",
+        "N-Body Simulator, C++ Test4, Plot {num} @ {current_time:.2f} days.png"
     )
     save_json_template = os.path.join(
         os.path.expanduser("~"),
         "Downloads",
         "Python Plots - 3D N-Body Simulator",
-        "N-Body Simulator - Full Tracking - C++ Test1 - Data",
-        "N-Body Simulator, C++ Test1, Data {num} @ {current_time:.2f} days.json"
+        "N-Body Simulator - Full Tracking - C++ Test4 - Data",
+        "N-Body Simulator, C++ Test4, Data {num} @ {current_time:.2f} days.json"
     )
     os.makedirs(os.path.dirname(save_png_template), exist_ok=True)
     os.makedirs(os.path.dirname(save_json_template), exist_ok=True)
     save_count = [1]
     next_save_time = [energy_reset_period - 2 * δt]  # Save just before the reset for better visualization of changes
+    next_save_time_orbits = [energy_reset_period/k_update - 2* δt]
     manager = plt.get_current_fig_manager()
 
     try:
@@ -874,6 +878,21 @@ def Visualize(energy_reset_period=Δt_reset):
         """
 
         #-------------------------------------------- Save the current figure automatically before each reset period. --------------------------------------------
+
+        # The following piece of code allows the Plot to be automatically centered to the center coordinates of all bodies in the simulation
+        if auto_center == True:
+            while current_time >= next_save_time_orbits[0] and next_save_time_orbits[0] <= Δt:
+                po = np.array([body.coordinates for body in bodies])
+                center = np.mean(po, axis=0)
+                                    
+                max_r = np.max(np.abs(po - center))
+                limit = max(max_r * 1.0, 1e10)
+
+                ax.set_xlim(-limit + center[0], limit + center[0])
+                ax.set_ylim(-limit + center[1], limit + center[1])
+                ax.set_zlim(-limit + center[2], limit + center[2]) 
+                next_save_time_orbits[0] += energy_reset_period/k_update
+
         while current_time >= next_save_time[0] and next_save_time[0] <= Δt:
             save_png_path = save_png_template.format(num=save_count[0], current_time=current_time)
             save_json_path = save_json_template.format(num=save_count[0], current_time=current_time)
@@ -887,7 +906,8 @@ def Visualize(energy_reset_period=Δt_reset):
                 "save_index": save_count[0],
                 "save_time": current_time,
                 "reset_threshold": next_save_time[0],
-                "entire_system_energy": {
+                "\nSystem's Name:": Name_sys,
+                "\nentire_system_energy": {
                     "times": list(time_data),
                     "values": list(energy_data[0])
                 },

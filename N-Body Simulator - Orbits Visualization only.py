@@ -8,11 +8,15 @@ from matplotlib.animation import FuncAnimation
 
 import core_calculations
 
+Name_sys:str = "HD 28109 System"  # Name of the System that is going to be simulated, going to be shown on the program and window of the same.
+auto_center:bool = False          # This allows the Plot to be automatically centered to the center coordinates of all bodies in the simulation
+k_update:float = 4                # Number of times per Δt_reset time in which the orbits will be updated
+
 δt:float = 3 #days
 δt_default:float = 2 #default timestep for normal conditions
-Δt:float = 365.25*10 #days
+Δt:float = 365.25*50 #days
 
-Δt_reset:float = 365*(1/2)
+Δt_reset:float = 365*2
 
 ε:float = 0 #Gravitational softening
 force_temp:float = 0 #Temporary variable for storing gravitational force
@@ -55,7 +59,7 @@ class Body:
             self.radii = radii
             self.mass = mass
 
-            self.temperature = temperature                 # Kelvin
+            self.temperature = temperature        # Kelvin
             self.temp_threshold = temp_threshold  # Arbitrary threshold for temperature-based effects (e.g., radiation pressure)
 
             self.gravity = G * self.mass / self.radii**2  # Surface gravity
@@ -84,11 +88,11 @@ bodies = []
 bodies.append(Body(1.227*M_Sun, [0,0,0], [0, 0, 0], [0, 0, 0], "HD 28109 *", 1.425*R_Sun, 5878, 0.0, 1000, "Star", [1, 1, 0.7, 1], 0, 1))
 #The RGB values of the Star are automatically determined depending on their surface temperature, also calculated using the Mass-Luminosity Relation, and Stefan-Boltzmann's law.
 
-bodies.append(Body(6.2*M_Earth, [0,0,0], [0, 88033, 19154], [0.1357*au*(1-0.00710), 0, 0], "HD 28109 b", 2.69*R_Earth, 280, 0.25, 2000, "Planet", [206/255, 104/255, 45/255, 0.8], 0.2, 0.9))
+bodies.append(Body(6.2*M_Earth, [0,0,0], [0, 88033, 19154], [0.1357*au*(1-0.00710), 0, 0], "HD 28109 b", 2.69*R_Earth, 280, 0.25, 2000, "Planet", [206/255, 104/255, 45/255, 0.8], 0.98, 0.9))
 
-bodies.append(Body(9.20*M_Earth, [0,0,0], [0, 58619, 10819], [0.308*au*(1-0.0039), 0, 0], "HD 28109 c", 4.13*R_Earth, 120, 0.25, 2000, "Planet", [226/255, 83/255, 0/255, 0.8], 0.1, 0.9))
+bodies.append(Body(9.20*M_Earth, [0,0,0], [0, 58619, 10819], [0.308*au*(1-0.0039), 0, 0], "HD 28109 c", 4.13*R_Earth, 120, 0.25, 2000, "Planet", [226/255, 83/255, 0/255, 0.8], 0.98, 0.9))
 
-bodies.append(Body(5.681*M_Earth, [0,0,0], [0, 50844, 925.7], [0.411*au*(1-0.0054), 0, 0], "HD 28109 d", 3.25*R_Earth, 120, 0.25, 2000, "Planet", [190/255, 154/255, 36/255, 0.8], 0.0, 0.9))
+bodies.append(Body(5.681*M_Earth, [0,0,0], [0, 50844, 925.7], [0.411*au*(1-0.0054), 0, 0], "HD 28109 d", 3.25*R_Earth, 120, 0.25, 2000, "Planet", [190/255, 154/255, 36/255, 0.8], 0.98, 0.9))
 
 #Mass, acceleration, velocity, coordinates, name, radii, temperature, albedo, temp_threshold, type, RGB colors (0-1), greenhouse effect (0-1), ε - Surface Emissitivity (0-1);
 
@@ -153,7 +157,7 @@ def Update_():
             for body in bodies)
 
         δt = np.clip(
-        0.25 / np.sqrt(a_max),
+        0.2 / np.sqrt(a_max),
         0.01,
         50
         )
@@ -273,7 +277,7 @@ def Visualize(frame_save_period=Δt_reset):
     """
     fig = plt.figure(num="N-Body Simulation - Orbits Tracking Only", figsize=(24, 18))
     try:
-        fig.canvas.manager.set_window_title("N-Body Simulation - Orbits Tracking Only")
+        fig.canvas.manager.set_window_title("N-Body Simulation - Orbits Tracking Only - {Name_sys}")
     except Exception:
         pass
     save_template = os.path.join(
@@ -281,12 +285,13 @@ def Visualize(frame_save_period=Δt_reset):
         "Downloads",
         "Python Plots - 3D N-Body Simulator",
         "N-Body Simulator - Orbits Visualization only",
-        "N-Body Simulator - Orbits Visualization - C++ Test1 - Plots",
-        "N-Body Simulator, C++ Test1, Plot {num} @ {current_time:.2f} days.png"
+        "N-Body Simulator - Orbits Visualization - C++ Test4 - Plots",
+        "N-Body Simulator, C++ Test4, Plot {num} @ {current_time:.2f} days.png"
     )
     os.makedirs(os.path.dirname(save_template), exist_ok=True)
     save_count = [1]
     next_save_time = [frame_save_period - 2 * δt]  # Save just before the reset for better visualization of changes
+    next_save_time_orbits = [frame_save_period/k_update - 2* δt]
     manager = plt.get_current_fig_manager()
 
     try:
@@ -316,7 +321,7 @@ def Visualize(frame_save_period=Δt_reset):
     ax.title.set_color('white')
     ax.tick_params(colors='#b0b0b0', labelsize=8)
 
-    ax.set_title("N-Body Simulation: Orbits and Energy Tracking", fontsize=14)
+    ax.set_title("N-Body Simulation: Orbits Tracking | {Name_sys}", fontsize=14)
 
     ax.grid(True, which='both', linestyle='--', linewidth=0.2, alpha=0.1)
 
@@ -443,6 +448,21 @@ def Visualize(frame_save_period=Δt_reset):
 
 
         #-------------------------------------------- Save the current figure automatically 50 days before each reset period. --------------------------------------------
+
+        # The following piece of code allows the Plot to be automatically centered to the center coordinates of all bodies in the simulation
+        if auto_center == True:
+            while current_time >= next_save_time_orbits[0] and next_save_time_orbits[0] <= Δt:
+                po = np.array([body.coordinates for body in bodies])
+                center = np.mean(po, axis=0)
+                                    
+                max_r = np.max(np.abs(po - center))
+                limit = max(max_r * 1.0, 1e10)
+
+                ax.set_xlim(-limit + center[0], limit + center[0])
+                ax.set_ylim(-limit + center[1], limit + center[1])
+                ax.set_zlim(-limit + center[2], limit + center[2]) 
+                next_save_time_orbits[0] += frame_save_period/k_update
+
         while current_time >= next_save_time[0] and next_save_time[0] <= Δt:
             save_path = save_template.format(num=save_count[0], current_time=current_time)
             try:
@@ -452,6 +472,7 @@ def Visualize(frame_save_period=Δt_reset):
                 print(f"Failed to save pre-reset plot: {e}")
             save_count[0] += 1
             next_save_time[0] += frame_save_period
+            
 
         #-------------------------------------------- Check for collisions between all body pairs --------------------------------------------
         i = 0
@@ -508,11 +529,14 @@ def Visualize(frame_save_period=Δt_reset):
         update,
         frames=frame_generator(),
         init_func=init,
-        interval=2,
+        interval=5,
         blit=True,
         repeat=False
     )
 
+    plt.rcParams['axes3d.mouserotationstyle'] = 'azel'  # 'azel', 'trackball', 'sphere', or 'arcball'
+
+    ax.view_init(elev=30, azim=55, roll=0)
     plt.show()
 
 # ---------------- RUN PROGRAM ----------------

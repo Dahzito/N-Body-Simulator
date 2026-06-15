@@ -1,6 +1,5 @@
 from math import*
 from sys import*
-path.append(r"C:\Users\Dahzito_08\Downloads")
 from os import*
 import os
 import json
@@ -11,6 +10,8 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.lines import Line2D
 
 import core_calculations
+
+Name_sys:str = "HD 28109 System"  # Name of the System that is going to be simulated, going to be shown on the program and window of the same.
 
 δt:float = 3 #days
 δt_default:float = 2 #default timestep for normal conditions
@@ -339,16 +340,16 @@ def Visualize(energy_reset_period=Δt_reset):
         "Downloads",
         "Python Plots - 3D N-Body Simulator",
         "N-Body Simulator - Dynamical Properties Tracking",
-        "N-Body Simulator, Dynamical Properties, C++ Test1",
-        "N-Body Simulator, C++ Test1 Plot {num} @ {current_time:.2f} days.png"
+        "N-Body Simulator, Dynamical Properties, C++ Test4",
+        "N-Body Simulator, C++ Test4 Plot {num} @ {current_time:.2f} days.png"
     )
     save_json_template = os.path.join(
         os.path.expanduser("~"),
         "Downloads",
         "Python Plots - 3D N-Body Simulator",
         "N-Body Simulator - Dynamical Properties Tracking",
-        "N-Body Simulator, Dynamical Properties, C++ Test1",
-        "N-Body Simulator, C++ Test1 Data {num} @ {current_time:.2f} days.json"
+        "N-Body Simulator, Dynamical Properties, C++ Test4",
+        "N-Body Simulator, C++ Test4 Data {num} @ {current_time:.2f} days.json"
     )
     os.makedirs(os.path.dirname(save_png_template), exist_ok=True)
     os.makedirs(os.path.dirname(save_json_template), exist_ok=True)
@@ -790,7 +791,8 @@ def Visualize(energy_reset_period=Δt_reset):
                 "save_index": save_count[0],
                 "save_time": current_time,
                 "reset_threshold": next_save_time[0],
-                "entire_system_energy": {
+                "\nSystem's Name:": Name_sys,
+                "\nentire_system_energy": {
                     "times": list(time_data),
                     "values": list(energy_data[0])
                 },
